@@ -1,0 +1,26 @@
+# Example backtest configuration.
+# (The current scripts take CLI flags; this file documents the same knobs and is
+#  the seed for config-driven runs as the project grows.)
+
+universe:
+  symbols: [AAPL, MSFT, SPY]
+  start: 2015-01-01
+  end: 2024-12-31
+  interval: 1d
+
+strategy:
+  name: moving_average_cross
+  short_window: 50
+  long_window: 200
+
+portfolio:
+  initial_capital: 100000
+
+risk:
+  target_pct: 0.10          # fraction of equity per position
+  max_position_pct: 0.25
+  allow_short: false
+
+execution:
+  slippage_bps: 1.0         # 1 bp = 0.01%
+  commission: zero          # zero | per_share

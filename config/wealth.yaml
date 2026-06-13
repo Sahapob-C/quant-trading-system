@@ -1,0 +1,35 @@
+# Wealth-management configuration (recommended defaults).
+# Every value here can be tuned without touching code. The SRS "n%" blanks are
+# the four risk values + daily_sweep_pct below.
+
+risk:
+  position_pct: 5.0                 # each trade = 5% of capital (no all-in)
+  circuit_breaker_dd_pct: 10.0      # 24h drawdown > 10% -> freeze
+  circuit_breaker_freeze_hours: 24.0
+  hard_stop_pct: 20.0               # per-position hard stop (SRS-fixed)
+  trailing_retracement_pct: 50.0    # give back 50% of peak profit (SRS-fixed)
+  daily_sweep_pct: 50.0             # sweep 50% of daily profit to the waterfall
+
+waterfall:
+  tier1_min_thb: 10000.0
+  tier1_max_thb: 35000.0
+  annual_cpi_pct: 3.0               # realized inflation
+  inflation_buffer_pct: 1.0         # Iron Rule: grow 1% ABOVE inflation
+  withholding_tax_pct: 30.0         # 15.0 if you file W-8BEN (TH-US treaty)
+  thai_income_tax_pct: 0.0          # set if you remit to TH and it's taxable
+
+fx:
+  usd_thb: 35.0                     # static fallback; live FX feed comes in W2/W3
+
+baskets:
+  # Data-screened 2026-06-12 (scripts/build_baskets.py) from real dividend history.
+  cashflow: [PG, JNJ, PEP, KO, MCD, ABBV]    # Basket 1 — consistent payers, DGR > inflation
+  drip:     [COST, GS, CAT, TXN, BLK]         # Basket 2 — premium, high DPS, single payout >= $1
+  growth:   [NVDA, AMZN, GOOGL, META, AAPL]   # Basket 3 — LOCKED until B1/B2 stabilize
+  growth_locked: true
+  drip_min_fractional_usd: 1.0                # broker min; excludes MSFT/AVGO (payout < $1)
+  growth_unlock_months: 6
+
+accounts:
+  live_capital_thb: 1000.0          # connectivity / fee / tax verification
+  paper_capital_usd: 100000.0       # strategy + waterfall evaluation

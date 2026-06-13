@@ -1,0 +1,21 @@
+# Core data / numerics
+pandas>=2.1
+numpy>=1.26
+pyarrow>=14.0          # parquet engine
+
+# Market data (free, no API key)
+yfinance>=0.2.40
+
+# Plotting
+matplotlib>=3.8
+
+# Config
+PyYAML>=6.0
+
+# Broker / live + paper trading (used in phase 2)
+alpaca-py>=0.20
+python-dotenv>=1.0
+
+# Research notebook (optional but recommended)
+jupyterlab>=4.0
+ipykernel>=6.0
