@@ -46,6 +46,8 @@ class SimulatedExecutionHandler(ExecutionHandler):
     ) -> None:
         if fill_on not in ("next_open", "close"):
             raise ValueError("fill_on must be 'next_open' or 'close'")
+        if slippage_bps < 0:
+            raise ValueError(f"slippage_bps cannot be negative, got {slippage_bps}")
         self.events = events
         self.data = data_handler
         self.slippage = slippage_bps / 10_000.0

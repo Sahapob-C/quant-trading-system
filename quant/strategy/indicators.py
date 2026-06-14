@@ -33,6 +33,8 @@ def roc(values: np.ndarray, n: int) -> float:
 
 def rolling_std(values: np.ndarray, n: int) -> float:
     """Sample standard deviation of the last ``n`` values."""
+    if n < 2:
+        return 0.0  # Cannot compute sample std with fewer than 2 points
     return float(np.std(values[-n:], ddof=1))
 
 
@@ -50,7 +52,7 @@ def rsi(values: np.ndarray, n: int = 14) -> float:
         avg_gain = (avg_gain * (n - 1) + gains[i]) / n
         avg_loss = (avg_loss * (n - 1) + losses[i]) / n
 
-    if avg_loss == 0:
+    if np.isclose(avg_loss, 0.0, atol=1e-15):
         return 100.0
     rs = avg_gain / avg_loss
     return float(100.0 - 100.0 / (1.0 + rs))

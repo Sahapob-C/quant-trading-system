@@ -33,7 +33,8 @@ def sortino_ratio(returns: pd.Series, periods: int = PERIODS_PER_YEAR) -> float:
 def drawdown_series(equity_curve: pd.Series) -> pd.Series:
     """Fractional drawdown from the running peak (<= 0)."""
     running_max = equity_curve.cummax()
-    return (equity_curve - running_max) / running_max
+    # Avoid division by zero: if running_max is 0, drawdown is undefined (use 0)
+    return np.where(running_max != 0, (equity_curve - running_max) / running_max, 0.0)
 
 
 def summary_stats(eq_df: pd.DataFrame, periods: int = PERIODS_PER_YEAR) -> Dict[str, float]:

@@ -57,6 +57,9 @@ class RiskController:
             price = prices.get(symbol)
             if price is None or price <= 0:
                 continue
+            # Skip if entry price is invalid (guards against division by zero)
+            if pos.entry_price <= 0:
+                continue
             pos.peak_price = max(pos.peak_price, price)
 
             # rule 4: hard stop (drawdown from entry)

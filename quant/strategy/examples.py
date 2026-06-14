@@ -80,6 +80,8 @@ class MomentumStrategy(_BaseLongOnly):
         super().__init__(events, data_handler, symbol_list)
         self.lookback = int(lookback)
         self.trend_window = int(trend_window)
+        if self.lookback <= 0 or self.trend_window <= 0:
+            raise ValueError(f"lookback and trend_window must be > 0, got lookback={self.lookback}, trend_window={self.trend_window}")
 
     def calculate_signals(self, event):
         if event.type != EventType.MARKET:
@@ -113,6 +115,10 @@ class RSIMeanReversionStrategy(_BaseLongOnly):
         self.period = int(period)
         self.oversold = float(oversold)
         self.exit_level = float(exit_level)
+        if self.period <= 0:
+            raise ValueError(f"period must be > 0, got {self.period}")
+        if not (0 <= self.oversold < self.exit_level <= 100):
+            raise ValueError(f"must have 0 <= oversold < exit_level <= 100, got oversold={self.oversold}, exit_level={self.exit_level}")
 
     def calculate_signals(self, event):
         if event.type != EventType.MARKET:
@@ -144,6 +150,10 @@ class BollingerBandStrategy(_BaseLongOnly):
         super().__init__(events, data_handler, symbol_list)
         self.window = int(window)
         self.num_std = float(num_std)
+        if self.window < 2:
+            raise ValueError(f"window must be >= 2, got {self.window}")
+        if self.num_std <= 0:
+            raise ValueError(f"num_std must be > 0, got {self.num_std}")
 
     def calculate_signals(self, event):
         if event.type != EventType.MARKET:
