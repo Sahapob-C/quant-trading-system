@@ -92,6 +92,8 @@ class MomentumStrategy(_BaseLongOnly):
             if closes is None:
                 continue
             momentum = ind.roc(closes, self.lookback)
+            if np.isnan(momentum):
+                continue
             trend = ind.sma(closes, self.trend_window)
             price = closes[-1]
             bullish = momentum > 0 and price > trend
@@ -162,7 +164,9 @@ class BollingerBandStrategy(_BaseLongOnly):
             closes = self._closes(s, self.window)
             if closes is None:
                 continue
-            lower, mid, _ = ind.bollinger(closes, self.window, self.num_std)
+            lower, mid, upper = ind.bollinger(closes, self.window, self.num_std)
+            if np.isnan(lower) or np.isnan(mid) or np.isnan(upper):
+                continue
             price = closes[-1]
             if price < lower and not self.invested[s]:
                 self._emit(s, "LONG")
@@ -185,6 +189,8 @@ class DonchianBreakoutStrategy(_BaseLongOnly):
         super().__init__(events, data_handler, symbol_list)
         self.entry_window = int(entry_window)
         self.exit_window = int(exit_window)
+        if self.entry_window < 1 or self.exit_window < 1:
+            raise ValueError(f"entry_window and exit_window must be >= 1, got entry_window={self.entry_window}, exit_window={self.exit_window}")
 
     def calculate_signals(self, event):
         if event.type != EventType.MARKET:
@@ -223,6 +229,8 @@ class CrossSectionalMomentumStrategy(_BaseLongOnly):
         self.lookback = int(lookback)
         self.top_k = int(top_k)
         self.rebalance_days = int(rebalance_days)
+        if self.lookback <= 0 or self.top_k <= 0 or self.rebalance_days <= 0:
+            raise ValueError(f"lookback, top_k, rebalance_days must all be > 0, got lookback={self.lookback}, top_k={self.top_k}, rebalance_days={self.rebalance_days}")
         self._bar = 0
 
     def calculate_signals(self, event):
@@ -237,7 +245,9 @@ class CrossSectionalMomentumStrategy(_BaseLongOnly):
             closes = self._series(s, "close", self.lookback + 1)
             if closes is None:
                 continue
-            scores[s] = ind.roc(closes, self.lookback)
+            roc_val = ind.roc(closes, self.lookback)
+            if not np.isnan(roc_val):
+                scores[s] = roc_val
         if not scores:
             return
 

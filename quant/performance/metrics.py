@@ -54,7 +54,7 @@ def summary_stats(eq_df: pd.DataFrame, periods: int = PERIODS_PER_YEAR) -> Dict[
     # Calmar: CAGR over the worst drawdown.
     calmar = float(cagr / abs(max_dd)) if max_dd < 0 else float("nan")
 
-    return {
+    result = {
         "total_return": total_return,
         "cagr": cagr,
         "ann_volatility": ann_vol,
@@ -65,6 +65,11 @@ def summary_stats(eq_df: pd.DataFrame, periods: int = PERIODS_PER_YEAR) -> Dict[
         "bars": n,
         "final_equity": float(eq_df["total"].iloc[-1]),
     }
+    # Replace NaN values with 0.0 for safer downstream handling
+    for key, val in result.items():
+        if isinstance(val, float) and np.isnan(val):
+            result[key] = 0.0
+    return result
 
 
 def format_stats(stats: Dict[str, float], initial_capital: float) -> str:
