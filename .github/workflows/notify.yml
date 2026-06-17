@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: Notify Slack
         run: |
-          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+          WEBHOOK="${{ secrets.SLACK_WEBHOOK_URL }}"
+          echo "Testing webhook..."
+          curl -v -X POST "$WEBHOOK" \
             -H 'Content-type: application/json' \
-            --data "{\"text\":\"✅ *quant-trading-system* \`${{ github.ref_name }}\` — pushed\",\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"✅ *quant-trading-system* \`${{ github.ref_name }}\` — pushed\n<${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|View commit>\"}}]}"
+            --data '{"text":"✅ quant-trading-system '"'"'${{ github.ref_name }}'"'"' — pushed","blocks":[{"type":"section","text":{"type":"mrkdwn","text":"✅ *quant-trading-system* `'"'"'${{ github.ref_name }}'"'"'` — pushed\n<${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|View commit>"}}]}'
