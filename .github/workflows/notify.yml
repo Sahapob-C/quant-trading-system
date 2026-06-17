@@ -1,0 +1,29 @@
+name: Notify Slack
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "GitHub Action notification",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "✅ *quant-trading-system* `${{ github.ref_name }}` — pushed\n<${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|View commit>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
