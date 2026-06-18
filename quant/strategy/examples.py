@@ -80,6 +80,8 @@ class MomentumStrategy(_BaseLongOnly):
         super().__init__(events, data_handler, symbol_list)
         self.lookback = int(lookback)
         self.trend_window = int(trend_window)
+        if self.lookback <= 0 or self.trend_window <= 0:
+            raise ValueError(f"lookback and trend_window must be > 0, got lookback={self.lookback}, trend_window={self.trend_window}")
 
     def calculate_signals(self, event):
         if event.type != EventType.MARKET:
@@ -90,6 +92,8 @@ class MomentumStrategy(_BaseLongOnly):
             if closes is None:
                 continue
             momentum = ind.roc(closes, self.lookback)
+            if np.isnan(momentum):
+                continue
             trend = ind.sma(closes, self.trend_window)
             price = closes[-1]
             bullish = momentum > 0 and price > trend
@@ -113,6 +117,10 @@ class RSIMeanReversionStrategy(_BaseLongOnly):
         self.period = int(period)
         self.oversold = float(oversold)
         self.exit_level = float(exit_level)
+        if self.period <= 0:
+            raise ValueError(f"period must be > 0, got {self.period}")
+        if not (0 <= self.oversold < self.exit_level <= 100):
+            raise ValueError(f"must have 0 <= oversold < exit_level <= 100, got oversold={self.oversold}, exit_level={self.exit_level}")
 
     def calculate_signals(self, event):
         if event.type != EventType.MARKET:
@@ -144,6 +152,10 @@ class BollingerBandStrategy(_BaseLongOnly):
         super().__init__(events, data_handler, symbol_list)
         self.window = int(window)
         self.num_std = float(num_std)
+        if self.window < 2:
+            raise ValueError(f"window must be >= 2, got {self.window}")
+        if self.num_std <= 0:
+            raise ValueError(f"num_std must be > 0, got {self.num_std}")
 
     def calculate_signals(self, event):
         if event.type != EventType.MARKET:
@@ -152,7 +164,9 @@ class BollingerBandStrategy(_BaseLongOnly):
             closes = self._closes(s, self.window)
             if closes is None:
                 continue
-            lower, mid, _ = ind.bollinger(closes, self.window, self.num_std)
+            lower, mid, upper = ind.bollinger(closes, self.window, self.num_std)
+            if np.isnan(lower) or np.isnan(mid) or np.isnan(upper):
+                continue
             price = closes[-1]
             if price < lower and not self.invested[s]:
                 self._emit(s, "LONG")
@@ -175,6 +189,8 @@ class DonchianBreakoutStrategy(_BaseLongOnly):
         super().__init__(events, data_handler, symbol_list)
         self.entry_window = int(entry_window)
         self.exit_window = int(exit_window)
+        if self.entry_window < 1 or self.exit_window < 1:
+            raise ValueError(f"entry_window and exit_window must be >= 1, got entry_window={self.entry_window}, exit_window={self.exit_window}")
 
     def calculate_signals(self, event):
         if event.type != EventType.MARKET:
@@ -213,6 +229,8 @@ class CrossSectionalMomentumStrategy(_BaseLongOnly):
         self.lookback = int(lookback)
         self.top_k = int(top_k)
         self.rebalance_days = int(rebalance_days)
+        if self.lookback <= 0 or self.top_k <= 0 or self.rebalance_days <= 0:
+            raise ValueError(f"lookback, top_k, rebalance_days must all be > 0, got lookback={self.lookback}, top_k={self.top_k}, rebalance_days={self.rebalance_days}")
         self._bar = 0
 
     def calculate_signals(self, event):
@@ -227,7 +245,9 @@ class CrossSectionalMomentumStrategy(_BaseLongOnly):
             closes = self._series(s, "close", self.lookback + 1)
             if closes is None:
                 continue
-            scores[s] = ind.roc(closes, self.lookback)
+            roc_val = ind.roc(closes, self.lookback)
+            if not np.isnan(roc_val):
+                scores[s] = roc_val
         if not scores:
             return
 

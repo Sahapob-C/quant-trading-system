@@ -33,7 +33,8 @@ def sortino_ratio(returns: pd.Series, periods: int = PERIODS_PER_YEAR) -> float:
 def drawdown_series(equity_curve: pd.Series) -> pd.Series:
     """Fractional drawdown from the running peak (<= 0)."""
     running_max = equity_curve.cummax()
-    return (equity_curve - running_max) / running_max
+    # Avoid division by zero: if running_max is 0, drawdown is undefined (use 0)
+    return np.where(running_max != 0, (equity_curve - running_max) / running_max, 0.0)
 
 
 def summary_stats(eq_df: pd.DataFrame, periods: int = PERIODS_PER_YEAR) -> Dict[str, float]:
@@ -53,7 +54,7 @@ def summary_stats(eq_df: pd.DataFrame, periods: int = PERIODS_PER_YEAR) -> Dict[
     # Calmar: CAGR over the worst drawdown.
     calmar = float(cagr / abs(max_dd)) if max_dd < 0 else float("nan")
 
-    return {
+    result = {
         "total_return": total_return,
         "cagr": cagr,
         "ann_volatility": ann_vol,
@@ -64,6 +65,11 @@ def summary_stats(eq_df: pd.DataFrame, periods: int = PERIODS_PER_YEAR) -> Dict[
         "bars": n,
         "final_equity": float(eq_df["total"].iloc[-1]),
     }
+    # Replace NaN values with 0.0 for safer downstream handling
+    for key, val in result.items():
+        if isinstance(val, float) and np.isnan(val):
+            result[key] = 0.0
+    return result
 
 
 def format_stats(stats: Dict[str, float], initial_capital: float) -> str:

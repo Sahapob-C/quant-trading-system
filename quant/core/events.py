@@ -79,6 +79,10 @@ class OrderEvent(Event):
 
     def __post_init__(self) -> None:
         self.type = EventType.ORDER
+        if self.quantity <= 0:
+            raise ValueError(f"quantity must be > 0, got {self.quantity}")
+        if self.order_type == "LMT" and (self.limit_price is None or self.limit_price <= 0):
+            raise ValueError(f"LMT orders must have limit_price > 0, got {self.limit_price}")
 
     def __str__(self) -> str:
         return (
@@ -101,6 +105,12 @@ class FillEvent(Event):
 
     def __post_init__(self) -> None:
         self.type = EventType.FILL
+        if self.quantity <= 0:
+            raise ValueError(f"quantity must be > 0, got {self.quantity}")
+        if self.fill_price <= 0:
+            raise ValueError(f"fill_price must be > 0, got {self.fill_price}")
+        if self.commission < 0:
+            raise ValueError(f"commission cannot be negative, got {self.commission}")
 
     def __str__(self) -> str:
         return (

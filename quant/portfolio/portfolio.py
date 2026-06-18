@@ -31,8 +31,12 @@ class Portfolio:
         self.events = events
         self.data = data_handler
         self.symbol_list = list(symbol_list)
+        if not self.symbol_list:
+            raise ValueError("symbol_list cannot be empty")
         self.start_date = pd.Timestamp(start_date)
         self.initial_capital = float(initial_capital)
+        if self.initial_capital <= 0:
+            raise ValueError(f"initial_capital must be > 0, got {self.initial_capital}")
         self.risk = risk_manager or RiskManager()
         # Optional hook fired after every fill (live trading: journal + alert).
         self.on_fill = on_fill
@@ -87,6 +91,10 @@ class Portfolio:
         s = signal.symbol
         price = self.data.get_latest_bar_value(s, "close")
         if price is None or price <= 0:
+            return None
+
+        # Skip signals for symbols not in our portfolio
+        if s not in self.current_positions:
             return None
 
         current_qty = self.current_positions[s]
