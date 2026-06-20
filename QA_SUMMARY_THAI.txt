@@ -1,0 +1,240 @@
+═══════════════════════════════════════════════════════════════════════════════
+                          QA/TESTING EXECUTIVE SUMMARY
+                         ระบบ Quant Trading System
+═══════════════════════════════════════════════════════════════════════════════
+
+📊 OVERALL STATUS: 🔴 NOT USABLE (Critical Blockers Present)
+
+───────────────────────────────────────────────────────────────────────────────
+🔴 CRITICAL ISSUES (ป้องกันการใช้งาน)
+───────────────────────────────────────────────────────────────────────────────
+
+[BLOCKER #1] Missing quant.data/ Module
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  📍 Location: Imported by 3 scripts หลัก
+  ❌ Status: Module doesn't exist in codebase
+
+  Affected Scripts:
+    • scripts/download_data.py (line 15)
+    • scripts/run_backtest.py (via runner.py line 16)
+    • scripts/paper_trade.py (line 32)
+
+  Missing Components:
+    ✗ quant/data/base.py - Abstract DataHandler
+    ✗ quant/data/historic.py - HistoricParquetDataHandler
+    ✗ quant/data/alpaca_data.py - AlpacaDataHandler
+    ✗ quant/data/loaders.py - download_to_parquet function
+
+  Test Result:
+  $ python scripts/download_data.py --symbols AAPL
+  ModuleNotFoundError: No module named 'quant.data'
+
+  Impact: 🔴 CRITICAL - All backtest/paper trading broken
+
+
+[BLOCKER #2] Missing Dependencies
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ❌ Status: Not installed
+
+  Missing:
+    • numpy
+    • pandas
+    • alpaca-py
+    • python-dotenv
+    • matplotlib
+    • PyYAML
+
+  Fix: pip install -r requirements.txt
+
+  Impact: 🔴 CRITICAL - Even if Bug #1 fixed, scripts crash on imports
+
+
+───────────────────────────────────────────────────────────────────────────────
+🟠 MAJOR BUGS (High Priority)
+───────────────────────────────────────────────────────────────────────────────
+
+[BUG #3] Portfolio.update_timeindex() - IndexError on empty symbol_list
+  Location: quant/portfolio/portfolio.py:56
+  Status: ❌ No validation for empty list
+
+[BUG #4] Alpaca Handler - Missing filled_qty validation
+  Location: quant/execution/alpaca_exec.py:57-58
+  Status: ❌ Can emit FillEvent with qty=0
+
+[BUG #5] SimulatedExecutionHandler - Silent loss on gap prices
+  Location: quant/execution/simulated.py:67-76
+  Status: ❌ Orders disappear with no log message
+
+[BUG #6] MovingAverage Strategy - No negative window validation
+  Location: quant/strategy/examples.py:50
+  Status: ❌ Accepts short_window=-10 or 0
+
+[BUG #7] RiskManager - No status/log on ignored SHORT signals
+  Location: quant/risk/risk.py:41-42
+  Status: ⚠️ Signal silently dropped
+
+[BUG #8] Portfolio.equity_curve() - Empty DataFrame not validated
+  Location: quant/portfolio/portfolio.py:137-145
+  Status: ❌ Passes empty frame to metrics
+
+[BUG #9] Registry - No parameter type validation
+  Location: quant/strategy/registry.py:36-41
+  Status: ❌ --param short_window="abc" accepted
+
+[BUG #10] Wealth Config - No range validation for %
+  Location: quant/wealth/config.py:14-64
+  Status: ❌ Accepts hard_stop_pct=0.0 or negative
+
+[BUG #11] Webhook Notifier - URL Injection Risk (SECURITY)
+  Location: quant/live/notify.py:26-40
+  Status: 🔴 No URL validation, SSRF risk
+
+[BUG #12] Alpaca Credentials - Plain text in memory (SECURITY)
+  Location: quant/settings.py:16-24
+  Status: 🔴 Could expose in error messages or logs
+
+[BUG #13] Grid Bot - Incomplete implementation
+  Location: scripts/run_grid_bot.py:75
+  Status: ❌ "TODO: wire to Alpaca" - no-op --exec
+
+
+───────────────────────────────────────────────────────────────────────────────
+🟡 MEDIUM ISSUES (7 Additional Edge Cases)
+───────────────────────────────────────────────────────────────────────────────
+
+  • Issue #14: RiskManager - Silent SHORT signal drop (no warning)
+  • Issue #15: Slippage model - Floating-point precision assumptions
+  • Issue #16: Portfolio cash - Precision loss over many trades
+  • Issue #17: Waterfall - Static FX rate (35 THB/USD hardcoded)
+  • Issue #18: WaterfallLedger - Missing year-boundary logic
+  • Issue #19: XS_Momentum - No lookahead detection
+  • Issue #20: Paper Trade - No early Alpaca connection validation
+
+
+───────────────────────────────────────────────────────────────────────────────
+📈 PROJECT STATISTICS
+───────────────────────────────────────────────────────────────────────────────
+
+  Total Python Files:        40
+  Lines of Code:             2,291
+  Test Files:                0 ❌ (ZERO)
+
+  Module Coverage:
+    ✓ quant/core/             ✓ quant/execution/
+    ✓ quant/portfolio/         ✓ quant/performance/
+    ✓ quant/risk/              ✓ quant/strategy/
+    ✓ quant/research/          ✓ quant/live/
+    ✓ quant/wealth/            ✗ quant/data/ (MISSING)
+
+  Scripts:
+    ✓ download_data.py         ✓ paper_trade.py
+    ✓ run_backtest.py          ✓ check_alpaca.py
+    ✓ sweep.py                 ✓ walkforward.py
+    ✓ compare.py               ✓ build_baskets.py
+    ✓ portfolio.py             ✓ wealth_sim.py
+    ✓ run_grid_bot.py          ✓ backtest_dca.py
+    ✓ grid_bot.py              ⚠️ (13 scripts total, 1 incomplete)
+
+
+───────────────────────────────────────────────────────────────────────────────
+⚠️  SECURITY CONCERNS
+───────────────────────────────────────────────────────────────────────────────
+
+1. 🔴 SSRF Risk (Webhook URL)
+   - WebhookNotifier accepts any URL without validation
+   - Could exfiltrate data to attacker's server
+   - Recommendation: Whitelist URLs, require HTTPS
+
+2. 🔴 Credential Exposure
+   - Alpaca keys returned as plain strings
+   - Could leak in error messages or logs
+   - Recommendation: Use secrets module, avoid string repr
+
+3. 🟡 .env Security
+   - Credentials loaded from .env (if accidentally committed)
+   - No integrity check
+   - Recommendation: Use secret manager (1Password, etc)
+
+4. 🟡 FX Rate Staleness
+   - Static 35 THB/USD rate (as of June 2567)
+   - Could cause significant conversion errors
+   - Recommendation: Fetch real-time rates
+
+
+───────────────────────────────────────────────────────────────────────────────
+✅ WHAT'S WORKING WELL
+───────────────────────────────────────────────────────────────────────────────
+
+✓ Architecture: Clean event-driven design (consistent between backtest/live)
+✓ Portfolio math: Sound approach to fill tracking and mark-to-market
+✓ Risk manager: Good abstraction for position sizing
+✓ Indicators: Dependency-free, lightweight implementations
+✓ Error handling: Mostly defensive (checks for None/invalid prices)
+✓ File I/O: Append-only JSONL pattern for trade journal (crash-safe)
+✓ Paper trading: Safe default (ALPACA_PAPER=true)
+
+
+───────────────────────────────────────────────────────────────────────────────
+🔧 RECOMMENDED FIX ORDER
+───────────────────────────────────────────────────────────────────────────────
+
+Phase 1 (CRITICAL - 1-2 days):
+  1. Implement quant/data/ module (historic, alpaca, loaders)
+  2. Install dependencies
+  3. Run download_data.py and verify backtest works
+
+Phase 2 (MAJOR - 2-3 days):
+  4. Add input validation to RiskConfig, WealthConfig
+  5. Add null checks to Portfolio, Execution handlers
+  6. Fix Alpaca fill validation
+  7. Add error logging (no silent failures)
+
+Phase 3 (IMPORTANT - 3-5 days):
+  8. Add 50+ unit tests (indicators, portfolio, risk)
+  9. Add integration tests (end-to-end backtest)
+  10. Add mock Alpaca tests
+
+Phase 4 (SECURITY - 1-2 days):
+  11. URL validation in WebhookNotifier
+  12. Use secrets module for credentials
+  13. Update FX rates (real-time or daily)
+  14. Add audit logging
+
+
+───────────────────────────────────────────────────────────────────────────────
+📋 VERIFICATION CHECKLIST
+───────────────────────────────────────────────────────────────────────────────
+
+Before using in production:
+  ☐ quant/data/ module implemented and tested
+  ☐ All dependencies installed
+  ☐ Unit tests pass (>= 80% coverage)
+  ☐ Integration test: backtest SPY 2020-2024 matches expected
+  ☐ Parameter validation complete
+  ☐ Security: No secrets in logs
+  ☐ Paper trading: Dry-run successful
+  ☐ Alpaca connection tested
+  ☐ FX rates updating daily
+  ☐ Webhook URL validated
+
+
+───────────────────────────────────────────────────────────────────────────────
+📝 CONCLUSION
+───────────────────────────────────────────────────────────────────────────────
+
+ระบบมีโครงสร้างดี (event-driven, pluggable handlers) แต่:
+
+  🔴 Status: NOT USABLE
+  ❌ Missing critical data module
+  ❌ Zero test coverage
+  ❌ 13 bugs พร้อม edge cases
+
+  ⚠️ Risk: HIGH - ไม่ควรใช้เงินจริงจนกว่า bugs ถูกแก้ไข
+
+Estimated effort to production-ready: 5-7 days (with careful testing)
+
+═══════════════════════════════════════════════════════════════════════════════
+Generated: 20 มิถุนายน 2567
+Test Coverage: NONE (0 test files)
+Status: BLOCKED - Awaiting fixes
+═══════════════════════════════════════════════════════════════════════════════
